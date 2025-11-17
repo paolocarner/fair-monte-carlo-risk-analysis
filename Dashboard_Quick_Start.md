@@ -24,6 +24,16 @@ pip3 install streamlit plotly
 streamlit run fair_dashboard.py
 ```
 
+Or if that doesn't work:
+Try run it in a virtual environment:
+```bash
+python3 -m venv venv
+source venv/bin/activate  # Mac/Linux
+# or
+
+venv\Scripts\activate     # Windows
+```
+
 That's it! Your browser will automatically open to the dashboard at `http://localhost:8501`
 
 ## 🎯 Features
