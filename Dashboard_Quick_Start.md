@@ -24,7 +24,7 @@ venv\Scripts\activate     # Windows
 You need to install Streamlit and Plotly (on top of the packages you already have):
 
 ```bash
-pip3 install -r requirements.txt
+pip3 install streamlit plotly
 ```
 
 ### Step 3: Launch the Dashboard
