@@ -33,6 +33,7 @@ source venv/bin/activate  # Mac/Linux
 # or
 ```bash
 venv\Scripts\activate     # Windows
+```
 
 That's it! You should see results printed and files generated.
 
