@@ -8,9 +8,10 @@ Risk = Loss Event Frequency (LEF) × Loss Magnitude (LM)
 LEF = Threat Event Frequency (TEF) × Vulnerability (Vuln)
 """
 
+import os
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import Dict, Optional
 import json
@@ -231,7 +232,9 @@ class FAIRMonteCarloSimulation:
         print("\n" + "="*60 + "\n")
 
     def plot_results(self, stats: Dict, currency: str = "€", save_path: str = None):
-        """Generate visualization of simulation results"""
+        """Generate visualization of simulation results (CLI use; requires matplotlib)"""
+        import matplotlib.pyplot as plt  # lazy import — not needed by the dashboard
+
         if self.results is None:
             raise ValueError("No simulation results available. Run simulation first.")
 
@@ -308,17 +311,38 @@ class FAIRMonteCarloSimulation:
 
         plt.show()
 
-    def export_results(self, stats: Dict, scenario_name: str, filename: str):
-        """Export results to JSON and CSV"""
+    def export_results(self, stats: Dict, scenario_name: str,
+                       filename: str, output_dir: str = ".") -> Dict[str, str]:
+        """
+        Export results to JSON and CSV.
+
+        Parameters:
+        -----------
+        stats: Statistics dict from run_simulation()
+        scenario_name: Human-readable name for the scenario
+        filename: Base CSV filename (e.g. 'results.csv')
+        output_dir: Directory to write files into (default: current directory)
+
+        Returns:
+        --------
+        Dict with keys 'json' and 'csv' containing the written file paths.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+
+        base = os.path.splitext(os.path.basename(filename))[0]
+        json_path = os.path.join(output_dir, base + '.json')
+        csv_path = os.path.join(output_dir, base + '.csv')
+
         json_data = {
             'scenario_name': scenario_name,
             'n_simulations': self.n_simulations,
             'statistics': stats
         }
-        json_filename = filename.replace('.csv', '.json')
-        with open(json_filename, 'w') as f:
+        with open(json_path, 'w') as f:
             json.dump(json_data, f, indent=2)
-        print(f"Statistics exported to: {json_filename}")
+        print(f"Statistics exported to: {json_path}")
+
+        written = {'json': json_path}
 
         if self.results is not None:
             df = pd.DataFrame({
@@ -327,8 +351,11 @@ class FAIRMonteCarloSimulation:
                 'threat_event_frequency': self.results['tef_samples'],
                 'actual_events': self.results['actual_events']
             })
-            df.to_csv(filename, index=False)
-            print(f"Raw simulation data exported to: {filename}")
+            df.to_csv(csv_path, index=False)
+            print(f"Raw simulation data exported to: {csv_path}")
+            written['csv'] = csv_path
+
+        return written
 
 
 def example_ransomware_scenario():

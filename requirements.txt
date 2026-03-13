@@ -11,8 +11,11 @@ streamlit>=1.28.0,<2.0.0
 numpy>=1.24.0,<2.0.0
 pandas>=2.0.0,<3.0.0
 
-# Visualization
+# Visualization (dashboard)
 plotly>=5.17.0,<6.0.0
+
+# Visualization (CLI / fair_monte_carlo.py plot_results() only)
+# Not required if running the dashboard exclusively
 matplotlib>=3.7.0,<4.0.0
 
 # Statistical Distributions
