@@ -1,5 +1,59 @@
 # FAIR Risk Analysis Dashboard - Changelog
 
+## Version 1.3 (revised) — Performance, Quality & Analytics Improvements
+**Release Date:** 2026-03-13
+
+### Summary
+A comprehensive developer-led improvement round covering simulation performance,
+code quality, UI polish, and six new analytical features.
+
+### ⚡ Performance
+- **10–50× simulation speedup**: vectorised Monte Carlo loop via `np.repeat` + `np.bincount` (eliminated per-simulation Python loop)
+- Lazy `matplotlib` import — dashboard startup no longer loads the CLI plotting library
+
+### 🏗️ Code Quality
+- Removed unused `from scipy import stats` import
+- `FAIRDistribution.__post_init__` validation: early, descriptive `ValueError` on bad inputs
+- `FAIRMonteCarloSimulation` accepts optional `random_seed` for reproducibility
+- `export_results()` now returns `{'json': path, 'csv': path}` dict and accepts `output_dir`
+- Preset scenarios extracted from Python dict → `presets.json` (loaded once via `@st.cache_data`)
+
+### 🖥️ Dashboard / UI
+- Fixed duplicate column header ("Loss Magnitude" instead of repeating "Internal Factors")
+- `validate_inputs()` with inline `st.error` messages; Run button disabled while errors exist
+- Random seed checkbox + number input in sidebar
+- `use_container_width=True` on all four Plotly charts
+- `total_vulnerability` computation moved outside `with col1:` block (scope fix)
+- Custom risk thresholds persist in `st.session_state.custom_thresholds` across profile switches
+- Preset loading now uses `@st.cache_data`
+- HTML report export (replaces plain-text `.txt`): styled with CSS, metric cards, risk banner, insurance table
+- Scenario comparison: overlaid histogram, percentile line chart, metrics table, params expander (up to 4 scenarios)
+
+### 🔬 New Analytical Features
+1. **Sensitivity / Tornado chart** (`🌪️ Sensitivity` tab): varies each of the 5 key parameters ±20%, shows ALE swing as a horizontal tornado chart + details table. Highlights the highest-leverage risk levers.
+2. **Distribution previews**: compact Plotly histograms inside collapsible expanders for TEF, Primary Loss, and Secondary Loss parameter groups.
+3. **Save / Load configuration**: sidebar file uploader loads any previously saved `.json` config; export section adds a `⚙️ Save Config` download button. Enables full round-trip parameter persistence.
+4. **Multi-year risk projection**: bootstrap resampling from annual loss distribution for 1/2/3/5-year horizons; grouped bar chart + summary table with Mean, 50th, 90th, 95th, 99th cumulative percentiles.
+
+### 🧪 Testing
+- Added `tests/` package (`tests/__init__.py`, `tests/test_fair_monte_carlo.py`)
+- **44 unit tests** covering:
+  - `FAIRDistribution` validation (all dist types + edge cases)
+  - Sampling correctness, bounds, degenerate inputs
+  - `FAIRMonteCarloSimulation` reproducibility, zero-vulnerability, results structure, statistical properties, export round-trip
+  - Constants sanity checks
+- Added `requirements-dev.txt` with `pytest>=7.0`
+
+### Files Changed
+- `fair_monte_carlo.py` — vectorisation, seed, validation, lazy import, export API
+- `fair_dashboard.py` — all UI and analytics features above
+- `presets.json` — new file (preset scenarios extracted from Python)
+- `requirements-dev.txt` — new file
+- `tests/__init__.py` — new file
+- `tests/test_fair_monte_carlo.py` — new file (44 tests)
+
+---
+
 ## Version 1.3 - Configurable Risk Tolerance
 **Release Date:** November 27, 2024
 
