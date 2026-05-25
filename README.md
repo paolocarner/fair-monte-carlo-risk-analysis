@@ -26,7 +26,7 @@ A professional, web-based tool for conducting quantitative cybersecurity risk as
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/fair-risk-dashboard.git
+git clone https://github.com/paolocarner/fair-risk-dashboard.git
 cd fair-risk-dashboard
 
 # Create virtual environment
