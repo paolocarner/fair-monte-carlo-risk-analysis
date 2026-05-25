@@ -1,0 +1,72 @@
+{
+  "Ransomware Attack": {
+    "tef_min": 100, "tef_mode": 300, "tef_max": 1000,
+    "vuln_contact": 0.25, "vuln_action": 0.10, "vuln_rate": 0.35,
+    "primary_min": 20000, "primary_mode": 75000, "primary_max": 350000,
+    "secondary_min": 10000, "secondary_mode": 40000, "secondary_max": 200000,
+    "secondary_prob": 0.35
+  },
+  "Data Breach (GDPR)": {
+    "tef_min": 500, "tef_mode": 1500, "tef_max": 4000,
+    "vuln_contact": 0.30, "vuln_action": 0.08, "vuln_rate": 0.25,
+    "primary_min": 15000, "primary_mode": 65000, "primary_max": 250000,
+    "secondary_min": 20000, "secondary_mode": 80000, "secondary_max": 400000,
+    "secondary_prob": 0.50
+  },
+  "Business Email Compromise": {
+    "tef_min": 300, "tef_mode": 800, "tef_max": 2000,
+    "vuln_contact": 0.40, "vuln_action": 0.05, "vuln_rate": 0.30,
+    "primary_min": 8000, "primary_mode": 40000, "primary_max": 200000,
+    "secondary_min": 3000, "secondary_mode": 15000, "secondary_max": 75000,
+    "secondary_prob": 0.25
+  },
+  "DDoS Attack": {
+    "tef_min": 15, "tef_mode": 40, "tef_max": 120,
+    "vuln_contact": 0.50, "vuln_action": 0.35, "vuln_rate": 1.0,
+    "primary_min": 5000, "primary_mode": 25000, "primary_max": 120000,
+    "secondary_min": 3000, "secondary_mode": 18000, "secondary_max": 80000,
+    "secondary_prob": 0.50
+  },
+  "Insider Threat": {
+    "tef_min": 3, "tef_mode": 10, "tef_max": 30,
+    "vuln_contact": 0.60, "vuln_action": 0.15, "vuln_rate": 1.0,
+    "primary_min": 15000, "primary_mode": 80000, "primary_max": 400000,
+    "secondary_min": 20000, "secondary_mode": 100000, "secondary_max": 600000,
+    "secondary_prob": 0.60
+  },
+  "Zero-Day Exploit": {
+    "tef_min": 5, "tef_mode": 20, "tef_max": 75,
+    "vuln_contact": 0.20, "vuln_action": 0.50, "vuln_rate": 0.50,
+    "primary_min": 30000, "primary_mode": 100000, "primary_max": 500000,
+    "secondary_min": 50000, "secondary_mode": 150000, "secondary_max": 800000,
+    "secondary_prob": 0.60
+  },
+  "Physical Theft of Device": {
+    "tef_min": 10, "tef_mode": 50, "tef_max": 200,
+    "vuln_contact": 0.80, "vuln_action": 0.10, "vuln_rate": 0.15,
+    "primary_min": 1000, "primary_mode": 4000, "primary_max": 15000,
+    "secondary_min": 5000, "secondary_mode": 25000, "secondary_max": 150000,
+    "secondary_prob": 0.30
+  },
+  "Critical System Outage": {
+    "tef_min": 1, "tef_mode": 3, "tef_max": 10,
+    "vuln_contact": 1.0, "vuln_action": 1.0, "vuln_rate": 0.80,
+    "primary_min": 15000, "primary_mode": 60000, "primary_max": 300000,
+    "secondary_min": 10000, "secondary_mode": 50000, "secondary_max": 250000,
+    "secondary_prob": 0.50
+  },
+  "Supply Chain Compromise": {
+    "tef_min": 2, "tef_mode": 8, "tef_max": 30,
+    "vuln_contact": 0.70, "vuln_action": 0.20, "vuln_rate": 0.25,
+    "primary_min": 25000, "primary_mode": 120000, "primary_max": 600000,
+    "secondary_min": 50000, "secondary_mode": 200000, "secondary_max": 1000000,
+    "secondary_prob": 0.75
+  },
+  "_default": {
+    "tef_min": 100, "tef_mode": 500, "tef_max": 2000,
+    "vuln_contact": 0.30, "vuln_action": 0.10, "vuln_rate": 0.30,
+    "primary_min": 20000, "primary_mode": 80000, "primary_max": 300000,
+    "secondary_min": 10000, "secondary_mode": 50000, "secondary_max": 200000,
+    "secondary_prob": 0.40
+  }
+}
