@@ -1,8 +1,8 @@
 # Contributing to FAIR Risk Analysis Dashboard
 
-Thank you for your interest in contributing! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing. This document provides guidelines for contributing to the project.
 
-## 🎯 Ways to Contribute
+## Ways to Contribute
 
 ### Reporting Bugs
 - Use the GitHub Issues tab
@@ -18,25 +18,27 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 ### Submitting Code
 - Fork the repository
-- Create a feature branch (`git checkout -b feature/AmazingFeature`)
+- Create a feature branch (`git checkout -b feature/your-feature-name`)
 - Make your changes
 - Test thoroughly
 - Commit with clear messages
 - Push to your fork
 - Open a Pull Request
 
-## 💻 Development Setup
+---
+
+## Development Setup
 
 ### Prerequisites
 - Python 3.8 or higher
 - Git
-- Virtual environment tool
+- A virtual environment tool
 
 ### Setup Steps
 ```bash
 # Clone your fork
-git clone https://github.com/your-username/fair-risk-dashboard.git
-cd fair-risk-dashboard
+git clone https://github.com/your-username/fair-monte-carlo-risk-analysis.git
+cd fair-monte-carlo-risk-analysis
 
 # Create virtual environment
 python -m venv venv
@@ -49,7 +51,9 @@ pip install -r requirements.txt
 streamlit run fair_dashboard.py
 ```
 
-## 📝 Coding Standards
+---
+
+## Coding Standards
 
 ### Python Style Guide
 - Follow PEP 8 guidelines
@@ -73,27 +77,27 @@ streamlit run fair_dashboard.py
 
 ### Code Structure
 ```python
-# Function template
 def calculate_risk_metric(parameter1: float, parameter2: float) -> dict:
     """
     Brief description of what this function does.
-    
+
     Args:
         parameter1: Description of first parameter
         parameter2: Description of second parameter
-        
+
     Returns:
         Dictionary containing calculated metrics
-        
+
     Example:
         >>> calculate_risk_metric(0.25, 1000)
         {'ale': 250, 'lef': 0.25}
     """
-    # Implementation
     pass
 ```
 
-## 🧪 Testing
+---
+
+## Testing
 
 ### Manual Testing Checklist
 - [ ] All input fields accept valid values
@@ -110,15 +114,17 @@ def calculate_risk_metric(parameter1: float, parameter2: float) -> dict:
 - Test edge cases
 - Verify error handling
 
-## 📚 Documentation
+---
+
+## Documentation
 
 ### Required Documentation Updates
 When adding features, update:
-- [ ] Main README.md (if user-facing)
-- [ ] CHANGELOG.md (version history)
+- [ ] `README.md` (if user-facing)
+- [ ] `CHANGELOG.md` (version history)
 - [ ] Help text tooltips (for UI elements)
 - [ ] Code comments (for complex logic)
-- [ ] FAIR_QUICK_REFERENCE.md (if adding new concepts)
+- [ ] `FAIR_QUICK_REFERENCE.md` (if adding new FAIR concepts)
 
 ### Documentation Style
 - Use clear, concise language
@@ -127,24 +133,14 @@ When adding features, update:
 - Include screenshots for UI changes
 - Update version numbers appropriately
 
-## 🔍 Pull Request Process
+---
+
+## Pull Request Process
 
 ### Before Submitting
-1. **Test Thoroughly**
-   - Run all manual tests
-   - Verify no regressions
-   - Test on different screen sizes
-
-2. **Update Documentation**
-   - README.md if needed
-   - CHANGELOG.md entry
-   - Help text for UI changes
-   - Code comments
-
-3. **Clean Commit History**
-   - Use descriptive commit messages
-   - Squash related commits
-   - Reference issues if applicable
+1. **Test thoroughly** — run all manual tests, verify no regressions, test on different screen sizes
+2. **Update documentation** — README, CHANGELOG, help text, code comments as applicable
+3. **Clean commit history** — descriptive messages, squash related commits, reference issues where applicable
 
 ### PR Title Format
 ```
@@ -189,27 +185,30 @@ Brief summary of changes
 Fixes #(issue number)
 ```
 
-## 🎨 UI/UX Guidelines
+---
+
+## UI/UX Guidelines
 
 ### Visual Design Principles
 - **Clarity:** Clear visual hierarchy
 - **Consistency:** Consistent styling throughout
 - **Accessibility:** High contrast, keyboard navigation
-- **Education:** UI should teach FAIR concepts
+- **Education:** UI should teach FAIR concepts, not assume prior knowledge
 
 ### Color Usage
 - External factors: Light blue/gray background
 - Internal factors: Light green/teal background
 - Risk levels: Green (low), Orange (medium), Red (high)
-- Maintain BARE Cybersecurity brand colors where applicable
 
 ### Container Guidelines
 - Use `st.container(border=True)` for grouping
 - Add descriptive captions with `st.caption()`
-- Include section headers with emoji icons
+- Include section headers with appropriate labels
 - Show formulas where relationships aren't obvious
 
-## 🌍 FAIR Methodology Standards
+---
+
+## FAIR Methodology Standards
 
 ### Terminology Requirements
 All FAIR terms must match these standard definitions:
@@ -218,7 +217,7 @@ All FAIR terms must match these standard definitions:
 - Contact Frequency (CF): Industry-wide threat volume
 
 **Internal Factors:**
-- Probability of Action (PoA): Organization-specific targeting
+- Probability of Action (PoA): Organisation-specific targeting
 - Threat Event Frequency (TEF): CF × PoA
 - Vulnerability (V): Control effectiveness (inverse)
 - Loss Event Frequency (LEF): TEF × V
@@ -231,50 +230,49 @@ All FAIR terms must match these standard definitions:
 - Statistical calculations must be mathematically sound
 - Percentiles must be calculated correctly
 
-## ❓ Questions?
+If you are unsure whether a methodology change is aligned with FAIR, open a Discussion before submitting a PR.
 
-### Getting Help
-- **General Questions:** Open a GitHub Discussion
-- **Bug Reports:** Open a GitHub Issue
-- **FAIR Methodology:** Visit [fairinstitute.org](https://www.fairinstitute.org)
-- **Feature Requests:** Open a GitHub Issue with "enhancement" label
+---
 
-### Contact
-- **Project Maintainer:** [Your contact info]
-- **BARE Cybersecurity:** [Organization contact]
+## Questions and Support
 
-## 📜 Code of Conduct
+- **General questions:** Open a [GitHub Discussion](https://github.com/paolocarner/fair-monte-carlo-risk-analysis/discussions)
+- **Bug reports:** Open a [GitHub Issue](https://github.com/paolocarner/fair-monte-carlo-risk-analysis/issues)
+- **FAIR methodology:** Visit [fairinstitute.org](https://www.fairinstitute.org)
+- **Feature requests:** Open a GitHub Issue with the "enhancement" label
+- **Direct contact:** paolo@bare-consult.nl
 
-### Our Pledge
+---
+
+## Code of Conduct
+
 We pledge to make participation in this project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
-### Our Standards
-**Positive behaviors:**
+**Expected behaviours:**
 - Being respectful of differing viewpoints
 - Gracefully accepting constructive criticism
 - Focusing on what is best for the community
 - Showing empathy towards other community members
 
-**Unacceptable behaviors:**
-- Trolling, insulting/derogatory comments, and personal attacks
+**Unacceptable behaviours:**
+- Trolling, insulting or derogatory comments, and personal attacks
 - Public or private harassment
 - Publishing others' private information without permission
 - Other conduct which could reasonably be considered inappropriate
 
-### Enforcement
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers. All complaints will be reviewed and investigated promptly and fairly.
-
-## 🎖️ Recognition
-
-Contributors will be recognized in:
-- CHANGELOG.md for significant contributions
-- GitHub Contributors page
-- Project acknowledgments
-
-## 📄 License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Instances of unacceptable behaviour may be reported to paolo@bare-consult.nl. All reports will be reviewed and investigated promptly and fairly.
 
 ---
 
-**Thank you for helping make quantitative risk analysis more accessible! 🙏**
+## Recognition
+
+Contributors will be recognised in:
+- `CHANGELOG.md` for significant contributions
+- The GitHub Contributors page
+- Project acknowledgments in the README
+
+---
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
