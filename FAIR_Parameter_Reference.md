@@ -58,45 +58,54 @@
 
 ## Vulnerability Rates by Control Maturity
 
-### Phishing Vulnerability (Contact × Action × Vulnerability)
+Per the corrected model (see `CHANGELOG.md`), **Contact Frequency (CF) is
+external and does not change with your controls** — it's industry-wide
+threat volume, a count. What controls actually change is **Probability of
+Action (PoA)** and **Vulnerability**: better filtering/training reduces how
+often a contact turns into a real attempt (PoA), and better technical
+controls (MFA, EDR, backups) reduce how often an attempt succeeds
+(Vulnerability). The tables below hold CF fixed and vary PoA/Vulnerability
+by maturity tier.
+
+### Phishing → Credential Theft (illustrative CF: 3,000 contacts/year)
 
 #### No Controls
-- Contact Frequency: 0.80 (80% reach inbox)
-- Probability of Action: 0.15 (15% click)
-- Vulnerability: 0.50 (50% compromise)
-- **Total: 6.0%**
+- Probability of Action: 0.20 (20% click — no filtering, no training)
+- Vulnerability: 0.05 (5% of clicks lead to compromise — no MFA)
+- **Effective loss events/year ≈ 3,000 × 0.20 × 0.05 = 30**
 
-#### Basic Controls (email filtering)
-- Contact Frequency: 0.30 (70% blocked)
-- Probability of Action: 0.12 (training effect)
-- Vulnerability: 0.40
-- **Total: 1.4%**
+#### Basic Controls (email filtering + basic training)
+- Probability of Action: 0.12 (filtering + training reduce click-through)
+- Vulnerability: 0.01 (1% — some MFA coverage)
+- **Effective loss events/year ≈ 3,000 × 0.12 × 0.01 = 3.6**
 
 #### Mature Controls (filtering + training + MFA + EDR)
-- Contact Frequency: 0.10 (90% blocked)
-- Probability of Action: 0.05 (well-trained)
-- Vulnerability: 0.10 (MFA + EDR)
-- **Total: 0.05%**
+- Probability of Action: 0.08 (well-trained workforce)
+- Vulnerability: 0.0013 (MFA + EDR block most compromises even after a click)
+- **Effective loss events/year ≈ 3,000 × 0.08 × 0.0013 ≈ 0.31**
 
-### Ransomware Vulnerability
+### Ransomware Vulnerability (illustrative CF: 3,000 contacts/year)
 
 #### No Controls
-- Contact: 0.60
-- Action: 0.20
-- Vulnerability: 0.60
-- **Total: 7.2%**
+- Probability of Action: 0.20
+- Vulnerability: 0.05 (no backups/EDR — a successful click usually means full compromise)
+- **Effective loss events/year ≈ 3,000 × 0.20 × 0.05 = 30**
 
 #### Basic Controls (AV + backups)
-- Contact: 0.40
-- Action: 0.15
-- Vulnerability: 0.30
-- **Total: 1.8%**
+- Probability of Action: 0.15
+- Vulnerability: 0.01
+- **Effective loss events/year ≈ 3,000 × 0.15 × 0.01 = 4.5**
 
 #### Mature Controls (EDR + backups + segmentation)
-- Contact: 0.20
-- Action: 0.08
-- Vulnerability: 0.15
-- **Total: 0.24%**
+- Probability of Action: 0.10
+- Vulnerability: 0.0013
+- **Effective loss events/year ≈ 3,000 × 0.10 × 0.0013 ≈ 0.39**
+
+All figures above are illustrative order-of-magnitude estimates, not
+sourced statistics — validate against real client control-effectiveness
+data (pen test results, phishing simulation click rates, MFA coverage,
+EDR alert data) before use in a client engagement. See
+`PRESET_METHODOLOGY.md` for how the shipped preset values were derived.
 
 ---
 
@@ -435,7 +444,7 @@ After running simulation, verify:
 ✅ Use full PERT or lognormal distributions
 
 ❌ **Overestimating vulnerability** (using "gut feel" vs. data)
-✅ Break down into Contact × Action × Vulnerability components
+✅ Ground Vulnerability in real control-effectiveness data (pen tests, phishing simulation results, MFA/EDR coverage) — and apply it directly to TEF, not multiplied by Contact Frequency or Probability of Action again (those are already accounted for in TEF; see `CHANGELOG.md`)
 
 ❌ **Ignoring secondary losses** or using same distribution as primary
 ✅ Model separately with lower probability of occurrence

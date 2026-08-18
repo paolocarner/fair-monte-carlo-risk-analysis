@@ -1,5 +1,40 @@
 # FAIR Risk Analysis Dashboard - Changelog
 
+## [Unreleased] — Fix: Contact Frequency / Vulnerability double-counting bug
+
+### Summary
+Fixes a real methodology bug reported by [@paolocarner](https://github.com/paolocarner) on GitHub: Threat Event Frequency (TEF) was collected directly as its own distribution, but the "Vulnerability" section separately asked for a "Contact Frequency (%)" and re-multiplied it (along with Probability of Action) into the vulnerability calculation — double-counting contact/action that TEF already fully represented, and mislabeling Contact Frequency as a percentage when the O-RT Standard defines it as a count. This silently crushed Loss Event Frequency (and therefore ALE) to artificially low values across every preset scenario.
+
+This release implements the **proper fix**: Contact Frequency is now a real count of contacts/year, Threat Event Frequency is *actually computed* as `TEF = Contact Frequency × Probability of Action` (per Open Group O-RT Standard v3.0.1 §4.3.1), and Vulnerability is a single, directly-set probability applied to that derived TEF (per §4.3.2) — never re-multiplied by Contact Frequency or Probability of Action.
+
+### 🐛 Fixed
+- **`fair_dashboard.py`**: Replaced the Contact Frequency (%) / Probability of Action (%) / Vulnerability Rate (%) three-slider decomposition with: Contact Frequency as a min/mode/max **count** input, Probability of Action as a slider, a **derived** (read-only) TEF display, and a single Vulnerability slider. The `st.caption(f"TEF = CF × PoA = ...")` line previously displayed a formula next to two numbers that didn't actually feed into TEF; it now reflects a real computation.
+- **`custom_scenario_template.py`**: Had the identical bug (`total_vulnerability = contact_frequency * probability_of_action * vulnerability_rate`, applied on top of a directly-entered TEF). Fixed the same way, using `derive_tef_from_contact()`.
+- **Sensitivity ("tornado chart") analysis**: Now varies Contact Frequency Mode and Probability of Action as two independent levers (previously collapsed into one "TEF Mode" lever, since TEF wasn't actually derived from them).
+- Fixed a crash (`ValueError` propagating as an uncaught exception) when Contact Frequency min/mode/max were entered out of order — TEF derivation is now guarded so `validate_inputs()` can show a friendly error and disable the Run button instead of breaking the whole script. Caught by the new `tests/test_fair_dashboard.py` regression suite.
+
+### ✨ Added
+- **`fair_monte_carlo.py`**: New `derive_tef_from_contact(cf_min, cf_mode, cf_max, poa)` function — the single source of truth for `TEF = CF × PoA`, used by both the dashboard and the template. Proven correct via both algebra and empirical sampling (scaling a PERT distribution's min/mode/max by a positive constant produces samples identical to that constant times the unscaled distribution's samples — see `tests/test_fair_monte_carlo.py::TestDeriveTEFFromContact::test_scaling_property_matches_empirical_sampling`).
+- **`tests/test_fair_dashboard.py`** (new file, 12 tests): End-to-end regression tests using Streamlit's `AppTest` framework — actually runs the dashboard headlessly, switches presets, drags sliders, clicks the Run button, and checks results, rather than only testing the engine in isolation. Covers preset loading, derived-TEF correctness, input validation, all 9 presets running without exception, sensitivity-tab lever names, and legacy config migration.
+- 8 new tests in `tests/test_fair_monte_carlo.py` covering `derive_tef_from_contact()` (edge cases, error handling, the PERT-scaling property, and an end-to-end LEF sanity check) and 2 covering `custom_scenario_template.py` end-to-end.
+- Legacy config-file migration: uploading a pre-fix saved config (`schema_version` absent, old `tef_min`/`vuln_contact_pct`/etc. keys) is detected and auto-migrated to the new CF/PoA schema, with an explicit on-screen warning that resulting ALE/LEF will differ from the original run.
+- `presets.json` `_meta` block documenting the schema change and methodology.
+
+### ⚠️ Changed — numbers will differ from previous runs
+- **All 9 preset scenarios in `presets.json` were recalibrated.** Contact Frequency and Probability of Action were reverse-derived to reproduce the *same* previously-published TEF distributions (so TEF itself is unchanged). Vulnerability could **not** simply be carried over from the old `vuln_rate` values, though — doing so (now that it's no longer double-discounted) would imply implausible outcomes, e.g. ~130 successful ransomware loss events/year for one SMB. Vulnerability was independently recalibrated to target plausible mean annual loss-event counts for a mid-size EU SMB with baseline controls (e.g. ~0.5 successful ransomware events/year rather than ~130). **These are reasoned illustrative estimates, not sourced statistics** — see `PRESET_METHODOLOGY.md` and validate against real client/control data before use in an engagement.
+- As a direct consequence, **Mean ALE for every preset scenario is now substantially lower** than in previous versions (which were artificially suppressed by the double-counting bug). This is the expected, correct effect of the fix — if you're comparing a new assessment run against an old (pre-fix) report for the same client, the drop in ALE reflects the bug fix, not an actual change in the client's risk.
+- The checked-in `ransomware_simulation_results.json/csv` and `ransomware_risk_analysis.png` artifacts were **not** regenerated — they were generated by `fair_monte_carlo.py`'s `example_ransomware_scenario()`, which always used a single directly-specified `vuln_prob=0.02` and was never affected by this bug (verified by re-running it and comparing output).
+
+### 📚 Documentation
+Updated to remove the incorrect model and worked examples from: `README.md`, `FAIR_Monte_Carlo_Guide.md` (formula section + all three worked Python scenario examples), `FAIR_Parameter_Reference.md` (vulnerability-by-control-maturity tables), `STATISTICS_FAQ.md`, `STATISTICS_QUICK_REFERENCE.md`, `UPDATING_STATISTICS_GUIDE.md` (three separate worked examples), `DATA_FLOW_DIAGRAM.md`, `docs/FAIR_QUICK_REFERENCE.md`, `docs/HELP_TEXT_SUMMARY.md`. `docs/UI_REORGANIZATION_GUIDE.md` received a top-of-file note plus fixes to its two worked numeric examples; its historical "before/after" box diagrams from the original v1.1→v1.2 reorganization were left as historical reference rather than rewritten. `CONTRIBUTING.md` already stated the model correctly and needed no change.
+- New `PRESET_METHODOLOGY.md`: documents exactly how each preset's Contact Frequency, Probability of Action, and Vulnerability values were derived.
+
+### References
+- The Open Group, *Risk Taxonomy (O-RT) Standard*, Version 3.0.1, Document C20B, November 2021 — §2.4 (Contact Frequency), §2.13 (Probability of Action), §2.26 (Threat Event Frequency), §2.27 (Vulnerability), §4.3.1, §4.3.2, Table 1.
+- Original report: [GitHub issue comment from @paolocarner](https://github.com/paolocarner/fair-monte-carlo-risk-analysis) (thank you for the detailed, well-sourced report).
+
+---
+
 ## Version 1.3 (revised) — Performance, Quality & Analytics Improvements
 **Release Date:** 2026-03-13
 

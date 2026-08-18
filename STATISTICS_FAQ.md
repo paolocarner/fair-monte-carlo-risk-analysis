@@ -209,17 +209,22 @@ Basic steps:
 
 ### Q11: Can I modify the vulnerability calculation?
 
-**A:** Yes! The three-factor model (Contact × Action × Vulnerability) can be adjusted:
+**A:** Vulnerability is now a single, directly-set value (see `CHANGELOG.md` — the earlier three-factor multiplication documented below was a real bug and has been removed):
 
 **Current model:**
 ```python
-total_vuln = vuln_contact × vuln_action × vuln_rate
+tef_min, tef_mode, tef_max = derive_tef_from_contact(cf_min, cf_mode, cf_max, poa)
+# LEF = TEF × Vulnerability, where Vulnerability is set directly — it is
+# NOT re-multiplied by Contact Frequency or Probability of Action, since
+# both are already fully accounted for in the derived TEF above.
 ```
 
-**Alternative: If you want to use direct vulnerability estimate:**
+**Setting Vulnerability directly:**
 ```python
 # In custom_scenario_template.py
-total_vulnerability = 0.015  # Your direct estimate (1.5%)
+total_vulnerability = 0.0016  # Your direct estimate — see CHANGELOG.md /
+                                # PRESET_METHODOLOGY.md for how preset values
+                                # were derived; validate against your own data.
 
 stats = sim.run_simulation(
     tef_dist=tef,

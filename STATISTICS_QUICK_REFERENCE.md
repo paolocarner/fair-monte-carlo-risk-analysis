@@ -4,17 +4,15 @@
 
 ## 📍 3 Places Statistics Live
 
-### 1. Dashboard Code (`fair_dashboard.py`)
-**Lines 100-142** - The `load_preset()` function
+### 1. Preset Data (`presets.json`)
 
-```python
+```json
 "Ransomware Attack": {
-    "tef_min": 100,           # ← HERE: Threat frequency min
-    "tef_mode": 300,          # ← HERE: Threat frequency most likely  
-    "tef_max": 1000,          # ← HERE: Threat frequency max
-    "vuln_contact": 0.25,     # ← HERE: Contact rate
-    "vuln_action": 0.10,      # ← HERE: Action rate
-    "vuln_rate": 0.35,        # ← HERE: Vulnerability rate
+    "cf_min": 1000,            # ← HERE: Contact Frequency min (contacts/yr)
+    "cf_mode": 3000,           # ← HERE: Contact Frequency most likely
+    "cf_max": 10000,           # ← HERE: Contact Frequency max
+    "poa": 0.1,                # ← HERE: Probability of Action
+    "vulnerability": 0.0013,   # ← HERE: Vulnerability (direct, applied to derived TEF)
     "primary_min": 20000,     # ← HERE: Min direct loss €
     "primary_mode": 75000,    # ← HERE: Most likely direct loss €
     "primary_max": 350000,    # ← HERE: Max direct loss €
@@ -25,7 +23,12 @@
 }
 ```
 
-**To update**: Edit these numbers, save, restart dashboard
+TEF is no longer stored directly — the dashboard derives it as `TEF = CF × PoA`
+(see `fair_monte_carlo.py`'s `derive_tef_from_contact()`) and applies
+`vulnerability` directly to that derived TEF. See `CHANGELOG.md` for why
+the old `vuln_contact`/`vuln_action`/`vuln_rate` three-way split was removed.
+
+**To update**: Edit `presets.json`, save, restart dashboard
 
 ### 2. Documentation (`docs/FAIR_Parameter_Reference.md`)
 **Full file** - Detailed tables with sources
@@ -89,12 +92,11 @@ streamlit run fair_dashboard.py
 
 | Parameter | What It Is | Example Value | Typical Range |
 |-----------|-----------|---------------|---------------|
-| `tef_min` | Minimum attacks/year | 100 | 10-500 |
-| `tef_mode` | Most likely attacks/year | 300 | 50-2000 |
-| `tef_max` | Maximum attacks/year | 1000 | 100-5000 |
-| `vuln_contact` | % reaching target | 0.25 (25%) | 0.10-0.80 |
-| `vuln_action` | % acted upon | 0.10 (10%) | 0.05-0.20 |
-| `vuln_rate` | % succeeding | 0.35 (35%) | 0.10-0.60 |
+| `cf_min` | Minimum contacts/year | 1,000 | 10-100,000 |
+| `cf_mode` | Most likely contacts/year | 3,000 | 50-500,000 |
+| `cf_max` | Maximum contacts/year | 10,000 | 100-1,000,000 |
+| `poa` | Probability of Action | 0.10 (10%) | 0.01-1.00 |
+| `vulnerability` | P(threat event → loss event) | 0.0013 (0.13%) | 0.0001-0.40 |
 | `primary_min` | Min direct cost € | 20,000 | 5k-50k |
 | `primary_mode` | Typical direct cost € | 75,000 | 20k-200k |
 | `primary_max` | Max direct cost € | 350,000 | 100k-1M |
@@ -135,8 +137,10 @@ streamlit run fair_dashboard.py
 - Vulnerability = probability of success
 
 ❌ **Mixing up vulnerability components**
-- Total = Contact × Action × Vulnerability
-- All three must multiply to total
+- Contact Frequency, Probability of Action, and Vulnerability are three separate O-RT factors
+- TEF = Contact Frequency × Probability of Action
+- Vulnerability is then applied directly to TEF: LEF = TEF × Vulnerability
+- Do **not** multiply Vulnerability by Contact Frequency or Probability of Action again — they're already accounted for in TEF (this was a real bug in earlier versions; see `CHANGELOG.md`)
 
 ❌ **Loss magnitudes > annual revenue**
 - Primary loss should be < 30% of revenue
