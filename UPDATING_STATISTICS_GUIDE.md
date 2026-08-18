@@ -4,21 +4,20 @@ This guide explains where incident frequency statistics and risk parameters are 
 
 ## 📍 Where Statistics Are Stored
 
-### 1. Dashboard Presets (`fair_dashboard.py`)
+### 1. Dashboard Presets (`presets.json`)
 
-**Location**: Lines 100-142 in the `load_preset()` function
+**Location**: `presets.json`, at the repo root (loaded once via `@st.cache_data` in `fair_dashboard.py`)
 
 This is where the **default preset scenarios** live. Each preset contains calibrated parameters based on industry research.
 
 **Example - Ransomware Attack:**
-```python
+```json
 "Ransomware Attack": {
-    "tef_min": 100,           # Minimum threat attempts per year
-    "tef_mode": 300,          # Most likely threat attempts per year
-    "tef_max": 1000,          # Maximum threat attempts per year
-    "vuln_contact": 0.25,     # 25% of threats reach the target
-    "vuln_action": 0.10,      # 10% result in user action
-    "vuln_rate": 0.35,        # 35% succeed when acted upon
+    "cf_min": 1000,            # Minimum Contact Frequency (contacts/year)
+    "cf_mode": 3000,           # Most likely Contact Frequency
+    "cf_max": 10000,           # Maximum Contact Frequency
+    "poa": 0.1,                # Probability of Action (10%)
+    "vulnerability": 0.0013,   # P(threat event → loss event), applied to derived TEF
     "primary_min": 20000,     # Minimum direct loss (€)
     "primary_mode": 75000,    # Most likely direct loss (€)
     "primary_max": 350000,    # Maximum direct loss (€)
@@ -28,6 +27,12 @@ This is where the **default preset scenarios** live. Each preset contains calibr
     "secondary_prob": 0.35    # 35% chance of secondary losses
 }
 ```
+
+`TEF = cf × poa` is derived automatically (`derive_tef_from_contact()` in
+`fair_monte_carlo.py`); do not add a `tef_min`/`tef_mode`/`tef_max` key here.
+`vulnerability` is applied directly to that derived TEF — do not multiply it
+by any contact- or action-related factor, or you will re-introduce the
+double-counting bug described in `CHANGELOG.md`.
 
 ### 2. Documentation (`docs/FAIR_Parameter_Reference.md`)
 
@@ -65,12 +70,12 @@ Contains a standalone example with inline comments explaining each parameter.
 
 ### Vulnerability Rates
 
-**Formula**: `Total Vulnerability = Contact × Action × Vulnerability`
+**Formula**: `LEF = TEF × Vulnerability`, where `TEF = Contact Frequency × Probability of Action` (see `CHANGELOG.md` — Vulnerability is set directly and applied to TEF, not multiplied by Contact Frequency or Probability of Action again).
 
-**Ransomware (0.875% total):**
-- **Contact (0.25)**: Email filtering blocks 75% (industry standard)
-- **Action (0.10)**: 10% of users click suspicious links (training dependent)
-- **Vulnerability (0.35)**: 35% of clicks lead to compromise (EDR/AV effectiveness)
+**Ransomware (Vulnerability = 0.13%):**
+- **Contact Frequency (3,000/yr mode)**: Malicious emails reaching the org (industry threat volume)
+- **Probability of Action (0.10)**: 10% of users click suspicious links (training dependent)
+- **Vulnerability (0.0013)**: Of the attempts that get through and are acted upon, ~0.13% still result in a real compromise despite EDR/backups — illustrative estimate, see `PRESET_METHODOLOGY.md`
 
 **Sources**:
 - Verizon DBIR (click rates)
@@ -195,14 +200,22 @@ def load_preset(scenario):
         "Supply Chain Attack": {
             # Based on: ENISA Threat Landscape 2025, Supply Chain section
             # Observation: 15-60 supply chain incidents/year for mid-size orgs
-            "tef_min": 15,      # Conservative: quarterly incidents
-            "tef_mode": 30,     # Most likely: monthly attempts
-            "tef_max": 60,      # Aggressive targeting
-            
-            # Vulnerability: Depends on vendor management
-            "vuln_contact": 0.80,  # High: most orgs have 50+ vendors
-            "vuln_action": 0.05,   # Low: vendor compromise is rare
-            "vuln_rate": 0.40,     # Medium: if vendor compromised, impact likely
+            # (This "incidents/year" range is Contact Frequency here, since it
+            # counts vendor-side security events the org is exposed to, not
+            # confirmed attempts against the org specifically.)
+            "cf_min": 300,      # Conservative: quarterly vendor incidents / low PoA
+            "cf_mode": 600,     # Most likely
+            "cf_max": 1200,     # Aggressive targeting
+
+            # Probability of Action: how often a vendor-side incident turns
+            # into an actual attempt against this org
+            "poa": 0.05,        # Low: most vendor compromises don't reach downstream orgs
+
+            # Vulnerability: probability an attempt (already counted in the
+            # derived TEF = cf x poa above) succeeds as a loss event. Set
+            # directly -- do NOT multiply by another contact/action factor.
+            "vulnerability": 0.0046,  # ~0.46% -- illustrative; validate against
+                                       # vendor risk assessment data
             
             # Primary loss: Extended incident response + vendor coordination
             "primary_min": 30000,
@@ -269,7 +282,7 @@ secondary_prob = 0.60
     # Source: Sophos State of Ransomware 2025 (pp. 23-25)
     # Sample: 3,000 EU SMBs, surveyed Q4 2024
     # Context: 50% YoY increase in targeting
-    "tef_min": 150,
+    "cf_min": 1500,
     ...
 }
 ```
@@ -277,11 +290,11 @@ secondary_prob = 0.60
 ### 2. Explain Your Reasoning
 
 ```python
-# Vulnerability reduced from 0.35 to 0.20 because:
+# Vulnerability reduced from 0.0013 to 0.0008 because:
 # - MFA adoption increased to 85% (Microsoft Digital Defense Report 2025)
 # - EDR deployment increased to 60% in EU SMBs (ENISA survey 2025)
 # - Resulted in 43% reduction in successful compromises
-"vuln_rate": 0.20,  # Updated 2025-01-15
+"vulnerability": 0.0008,  # Updated 2025-01-15
 ```
 
 ### 3. Keep Old Values Commented
@@ -469,19 +482,18 @@ Let's walk through updating ransomware statistics based on new 2025 data:
     # Source: Sophos State of Ransomware 2025, pp. 23-28
     # Sample: 3,000 EU organizations (500-5,000 employees)
     # Key findings:
-    # - 50% increase in targeting (TEF ↑)
-    # - MFA adoption (78% → 89%) reduced success rate (Vuln ↓)
+    # - 50% increase in targeting (Contact Frequency ↑)
+    # - MFA adoption (78% → 89%) reduced success rate (Vulnerability ↓)
     
-    # Threat Event Frequency (ransomware attempts/year)
-    "tef_min": 150,    # Was: 100 (2024)
-    "tef_mode": 450,   # Was: 300 (2024)
-    "tef_max": 1500,   # Was: 1000 (2024)
-    
-    # Vulnerability components
-    "vuln_contact": 0.20,  # Was: 0.25 (better email filtering)
-    "vuln_action": 0.10,   # Unchanged (user behavior stable)
-    "vuln_rate": 0.30,     # Was: 0.35 (MFA + EDR improvements)
-    # Total vuln: 0.20 × 0.10 × 0.30 = 0.006 (0.6%)
+    # Contact Frequency (contacts/year) -- Probability of Action unchanged
+    "cf_min": 1500,    # Was: 1000 (2024)
+    "cf_mode": 4500,   # Was: 3000 (2024)
+    "cf_max": 15000,   # Was: 10000 (2024)
+    "poa": 0.1,        # Unchanged (user click-through rate stable)
+
+    # Vulnerability -- applied directly to derived TEF, not multiplied by
+    # any contact/action factor
+    "vulnerability": 0.0008,  # Was: 0.0013 (MFA + EDR improvements)
     
     # Loss magnitudes unchanged (no new cost data)
     "primary_min": 20000,

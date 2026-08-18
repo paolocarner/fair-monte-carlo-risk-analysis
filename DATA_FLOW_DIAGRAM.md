@@ -31,23 +31,22 @@ Visual guide showing how statistics flow through the FAIR Monte Carlo tool.
                      ↓                    ↓
 ┌──────────────────────────────┐  ┌─────────────────────────────┐
 │   DASHBOARD PRESETS          │  │  COMMAND-LINE EXAMPLES      │
-│   fair_dashboard.py          │  │  fair_monte_carlo.py        │
-│   Lines 100-142              │  │  Lines 360-400              │
+│   presets.json                │  │  fair_monte_carlo.py        │
+│   (loaded by fair_dashboard.py)│ │  example_ransomware()       │
 ├──────────────────────────────┤  ├─────────────────────────────┤
 │                              │  │                             │
-│  load_preset() function:     │  │  example_ransomware():      │
-│                              │  │                             │
 │  "Ransomware Attack": {      │  │  tef = FAIRDistribution(    │
-│    "tef_min": 100,          │  │    min_val=100,             │
-│    "tef_mode": 300,         │  │    mode_val=300,            │
-│    "tef_max": 1000,         │  │    max_val=1000             │
-│    "vuln_contact": 0.25,    │  │  )                          │
-│    "vuln_action": 0.10,     │  │                             │
-│    "vuln_rate": 0.35,       │  │  vulnerability = 0.02       │
-│    "primary_min": 20000,    │  │                             │
+│    "cf_min": 1000,          │  │    min_val=100,             │
+│    "cf_mode": 3000,         │  │    mode_val=300,            │
+│    "cf_max": 10000,         │  │    max_val=1000             │
+│    "poa": 0.1,              │  │  )   # TEF entered directly │
+│    "vulnerability": 0.0013, │  │                             │
+│    "primary_min": 20000,    │  │  vulnerability = 0.02       │
 │    "primary_mode": 75000,   │  │  primary_loss = ...         │
 │    ...                      │  │  secondary_loss = ...       │
 │  }                          │  │                             │
+│  ↓ derive_tef_from_contact()│  │  (estimates TEF directly,   │
+│  TEF = cf × poa             │  │  skipping the CF/PoA split) │
 │                              │  │                             │
 └──────────┬───────────────────┘  └────────┬────────────────────┘
            │                               │

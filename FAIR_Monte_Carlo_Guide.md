@@ -14,14 +14,14 @@ Risk = Loss Event Frequency (LEF) × Loss Magnitude (LM)
 ### Loss Event Frequency (LEF)
 ```
 LEF = Threat Event Frequency (TEF) × Vulnerability (Vuln)
+TEF = Contact Frequency (CF) × Probability of Action (PoA)
 ```
 
-Where:
-- **TEF**: How often threats occur (e.g., phishing attempts per year)
-- **Vulnerability**: Probability a threat succeeds (Contact × Action × Vulnerability)
-  - Contact: Probability threat reaches asset
-  - Action: Probability threat acts on asset
-  - Vulnerability: Probability controls fail
+Where (per the Open Group O-RT Standard v3.0.1):
+- **Contact Frequency (CF)**: How often a threat agent contacts your asset, per year. A **count** (e.g. "3,000 malicious emails/year"), NOT a percentage.
+- **Probability of Action (PoA)**: Once contact occurs, the probability the threat agent acts. A percentage (0-100%).
+- **TEF**: CF × PoA — how often a threat *actually attempts* to act against your asset. This tool computes TEF from CF and PoA automatically; you don't multiply them yourself.
+- **Vulnerability**: The probability a threat event (already counted in TEF) becomes a loss event — i.e. that the threat agent's capability exceeds your controls' resistance strength. A single percentage, applied on top of TEF — it is *not* multiplied by Contact Frequency or Probability of Action again, since those are already fully accounted for in TEF.
 
 ### Loss Magnitude (LM)
 ```
@@ -147,14 +147,17 @@ FAIRDistribution(
 ```python
 sim = FAIRMonteCarloSimulation(n_simulations=10000)
 
-# Threat: Data breach attempts via various vectors
+# Threat Event Frequency: attempts specifically against this org per year
+# (this example estimates TEF directly rather than decomposing into CF x PoA
+# -- both are valid per the O-RT Standard; decompose when you have separate
+# contact-volume and action-rate data, estimate TEF directly otherwise)
 tef = FAIRDistribution(dist_type='pert', min_val=50, mode_val=150, max_val=500)
 
-# Vulnerability: Combined probability of breach success
-# - Systems accessible: 0.8
-# - Attacker acts: 0.3
-# - Controls fail: 0.1
-vulnerability = 0.8 * 0.3 * 0.1  # = 0.024 (2.4%)
+# Vulnerability: probability one of those attempts succeeds and becomes a
+# loss event, applied directly on top of TEF -- NOT a product of sub-factors
+# that are already baked into TEF (see CHANGELOG.md for why that double-counts).
+# Illustrative estimate -- validate against real control-effectiveness data.
+vulnerability = 0.0016  # ~0.16%
 
 # Primary: Incident response, forensics, notification, credit monitoring
 primary_loss = FAIRDistribution(dist_type='lognormal', min_val=15000, mode_val=75000, max_val=300000)
@@ -168,11 +171,13 @@ stats = sim.run_simulation(tef, vulnerability, primary_loss, secondary_loss, sec
 ### Scenario 2: Business Email Compromise (BEC)
 
 ```python
-# Threat: Phishing/BEC attempts targeting finance team
+# Threat Event Frequency: phishing/BEC attempts against this org per year
 tef = FAIRDistribution(dist_type='pert', min_val=200, mode_val=500, max_val=1200)
 
-# Vulnerability: Email reaches inbox × Employee clicks × Transfer occurs
-vulnerability = 0.7 * 0.05 * 0.3  # = 0.0105 (1.05%)
+# Vulnerability: probability an attempt succeeds (email reaches inbox,
+# employee acts, transfer completes) -- a single estimate applied on top
+# of TEF, not multiplied from separate contact/action/rate factors.
+vulnerability = 0.0011  # ~0.11%
 
 # Primary: Wire transfer losses, recovery costs
 primary_loss = FAIRDistribution(dist_type='lognormal', min_val=5000, mode_val=30000, max_val=150000)
@@ -186,11 +191,14 @@ stats = sim.run_simulation(tef, vulnerability, primary_loss, secondary_loss, sec
 ### Scenario 3: DDoS Attack
 
 ```python
-# Threat: DDoS attempts on web services
+# Threat Event Frequency: DDoS attempts on web services per year
 tef = FAIRDistribution(dist_type='pert', min_val=10, mode_val=30, max_val=100)
 
-# Vulnerability: Attack reaches servers × Overwhelms capacity
-vulnerability = 0.6 * 0.4  # = 0.24 (24%)
+# Vulnerability: probability an attempt overwhelms capacity and causes a
+# measurable business-impacting outage, despite mitigation already in place.
+vulnerability = 0.078  # ~7.8% -- higher than the other examples because DDoS
+                        # attempts are comparatively easy to launch and mitigation
+                        # doesn't always fully absorb them
 
 # Primary: Downtime revenue loss, mitigation service costs
 primary_loss = FAIRDistribution(dist_type='lognormal', min_val=3000, mode_val=15000, max_val=80000)
@@ -205,36 +213,28 @@ stats = sim.run_simulation(tef, vulnerability, primary_loss, secondary_loss, sec
 
 ## Estimating Parameters
 
-### Threat Event Frequency (TEF)
+### Contact Frequency (CF) & Probability of Action (PoA) → TEF
 
-**Sources for estimates:**
+**Sources for CF estimates:**
 1. **Vendor reports**: Verizon DBIR, IBM X-Force, Microsoft Security Intelligence
 2. **Your data**: Firewall logs, email gateway, SIEM alerts
 3. **Industry peers**: Information sharing groups (ISACs)
 4. **Expert judgment**: SME interviews
 
-**Example for ransomware:**
-- Check email gateway: 50-200 malicious emails/month
-- Annualize: 600-2,400/year
-- Use PERT with min=500, mode=1,000, max=3,000
+**Example for ransomware (phishing vector):**
+- Check email gateway: 50-200 malicious emails/month reaching the org (before any filtering the user acts on)
+- Annualize: 600-2,400 contacts/year → this is **Contact Frequency**, use PERT with min=750, mode=1,200, max=2,400
+- Estimate what fraction of those contacts get acted upon (opened/clicked): e.g. 8% → **Probability of Action = 0.08**
+- The tool computes **TEF = CF × PoA** for you — you don't need to multiply these yourself, and you don't enter TEF directly when working at this level of detail. (If you'd rather estimate TEF directly without decomposing into CF/PoA, that's also a methodologically valid shortcut per the O-RT Standard — this tool's dashboard currently expects the CF/PoA breakdown; enter CF = your TEF estimate and PoA = 100% if you want TEF taken at face value.)
 
 ### Vulnerability Estimation
 
-Break down into components:
+Vulnerability is the probability that a threat event — one that's already been counted in TEF above — succeeds and becomes a loss event (i.e. that the threat agent's capability exceeds your controls' resistance strength). Per the O-RT Standard, there are two valid ways to estimate it:
 
-1. **Contact Frequency** (CF)
-   - What % of threats reach your assets?
-   - Email filter blocks 95% → CF = 0.05
+1. **Directly**, as a single probability: "of the attempts that get through and are acted upon, what fraction actually result in a real compromise despite our controls (EDR, backups, segmentation, etc.)?" This is usually a small number — often well under 1% for an org with reasonable controls, since TEF already represents fully-formed attack *attempts*, not raw contact volume.
+2. **From Threat Capability vs. Resistance Strength**, comparing the attacker's estimated capability percentile against your controls' resistance percentile.
 
-2. **Probability of Action** (PoA)
-   - What % of reached threats are acted upon?
-   - 10% of users click phishing → PoA = 0.10
-
-3. **Vulnerability** (V)
-   - What % succeed when acted upon?
-   - 20% of clicks lead to compromise → V = 0.20
-
-**Total Vulnerability = CF × PoA × V = 0.05 × 0.10 × 0.20 = 0.001 (0.1%)**
+**Important:** Vulnerability is applied directly on top of TEF (`LEF = TEF × Vulnerability`). It must **not** be built by re-multiplying Contact Frequency or Probability of Action into it — those are already fully baked into TEF. Doing so double-counts the same discount and silently crushes your loss-event frequency to an unrealistically low number (this was a real bug in earlier versions of this tool — see `CHANGELOG.md`).
 
 ### Loss Magnitude
 

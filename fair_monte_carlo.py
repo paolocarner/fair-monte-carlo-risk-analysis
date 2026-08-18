@@ -22,6 +22,52 @@ LOGNORMAL_SIGMA_DIVISOR = 4  # Divisor for lognormal sigma estimation
 MIN_POSITIVE_VALUE = 1e-10  # Minimum value to prevent log(0) errors
 
 
+def derive_tef_from_contact(cf_min: float, cf_mode: float, cf_max: float,
+                             poa: float) -> tuple:
+    """
+    Derive Threat Event Frequency (TEF) distribution parameters from Contact
+    Frequency (CF) and Probability of Action (PoA), per the Open Group O-RT
+    Standard v3.0.1, Section 4.3.1:
+
+        TEF = Contact Frequency (CF) x Probability of Action (PoA)
+
+    CF is a count of contacts/year (e.g. "3,000 malicious emails reaching the
+    org per year"), NOT a percentage -- per O-RT Section 2.4 / Table 1, Contact
+    Frequency's unit of measure is events per unit time. PoA is the probability,
+    once contact occurs, that the threat agent acts (O-RT Section 2.13) and is
+    a fraction in [0, 1].
+
+    Mathematically, if CF ~ PERT(cf_min, cf_mode, cf_max) and TEF = CF * poa
+    for a constant poa, then TEF ~ PERT(poa*cf_min, poa*cf_mode, poa*cf_max).
+    This holds because the PERT shape parameters (alpha, beta) depend only on
+    the ratios (mode-min)/(max-min) and (max-mode)/(max-min), which are
+    invariant under positive linear scaling of all three inputs -- so scaling
+    every parameter by the same positive constant scales the resulting
+    distribution by that constant. This lets the simulation engine keep
+    treating TEF as a single PERT-sampled input with no changes to
+    FAIRMonteCarloSimulation.run_simulation() itself.
+
+    Parameters:
+    -----------
+    cf_min, cf_mode, cf_max: Contact Frequency distribution parameters
+        (contacts per year; must satisfy cf_min <= cf_mode <= cf_max).
+    poa: Probability of Action, in [0, 1].
+
+    Returns:
+    --------
+    (tef_min, tef_mode, tef_max) tuple, suitable for
+    FAIRDistribution('pert', tef_min, tef_mode, tef_max).
+    """
+    if not (0.0 <= poa <= 1.0):
+        raise ValueError(f"poa must be between 0 and 1, got {poa}")
+    if not (cf_min <= cf_mode <= cf_max):
+        raise ValueError(
+            f"Contact Frequency requires cf_min <= cf_mode <= cf_max, "
+            f"got min={cf_min}, mode={cf_mode}, max={cf_max}"
+        )
+    return cf_min * poa, cf_mode * poa, cf_max * poa
+
+
 @dataclass
 class FAIRDistribution:
     """Represents a probability distribution for FAIR parameters"""

@@ -58,10 +58,10 @@ The dashboard will automatically open in your browser at `http://localhost:8501`
 The dashboard clearly distinguishes between factors you can and cannot control:
 
 **🌍 External Factors (Threat Landscape)**
-- **Contact Frequency** - Industry-wide threat volume (you can't control)
+- **Contact Frequency** - Industry-wide threat volume, a count of contacts per year (you can't control)
 
 **🏢 Internal Factors (Your Organization)**
-- **Threat Event Frequency & Probability of Action** - Your attractiveness as a target (partially controllable)
+- **Threat Event Frequency** *(derived as Contact Frequency × Probability of Action)* **& Probability of Action** - Your attractiveness as a target (partially controllable)
 - **Vulnerability** - Your security control effectiveness (directly controllable)
 - **Loss Magnitudes** - Your specific costs and exposure (partially controllable)
 

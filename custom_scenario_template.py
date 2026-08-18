@@ -7,7 +7,7 @@ Use this template to quickly set up custom risk scenarios for your vCISO engagem
 Simply fill in the parameters based on client interviews and industry data.
 """
 
-from fair_monte_carlo import FAIRMonteCarloSimulation, FAIRDistribution
+from fair_monte_carlo import FAIRMonteCarloSimulation, FAIRDistribution, derive_tef_from_contact
 
 def run_custom_scenario():
     """
@@ -38,55 +38,66 @@ def run_custom_scenario():
     print(f"{'='*70}\n")
     
     # =================================================================
-    # THREAT EVENT FREQUENCY (TEF)
+    # CONTACT FREQUENCY (CF) & PROBABILITY OF ACTION (PoA)
     # =================================================================
-    # Question: How many times per year does this threat occur?
+    # Per the Open Group O-RT Standard v3.0.1, Section 4.3.1:
+    #     Threat Event Frequency (TEF) = Contact Frequency (CF) x Probability of Action (PoA)
+    #
+    # Contact Frequency is a COUNT of contacts/year (e.g. malicious emails
+    # reaching the org) -- NOT a percentage. Probability of Action is the
+    # probability that, once contact occurs, the threat agent actually acts.
+    # Question: How many times per year does a threat agent contact this
+    # organization, and what fraction of those contacts turn into a real
+    # attempt?
     # Sources: Email gateway logs, SIEM data, industry reports, expert judgment
-    
+
     # Example: Phishing emails targeting this organization
-    tef_min = 300      # Conservative estimate (minimum attempts/year)
-    tef_mode = 800     # Most likely (typical attempts/year)
-    tef_max = 2000     # Worst case (maximum attempts/year)
-    
+    cf_min = 3_750      # Conservative estimate (minimum contacts/year)
+    cf_mode = 10_000    # Most likely (typical contacts/year)
+    cf_max = 25_000     # Worst case (maximum contacts/year)
+
+    # Probability of Action: fraction of contacts that are acted upon
+    # Example: 8% of employees click phishing links
+    probability_of_action = 0.08  # 8% click
+
+    tef_min, tef_mode, tef_max = derive_tef_from_contact(
+        cf_min, cf_mode, cf_max, probability_of_action
+    )
+
     tef = FAIRDistribution(
         dist_type='pert',
         min_val=tef_min,
         mode_val=tef_mode,
         max_val=tef_max
     )
-    
-    print(f"📧 Threat Event Frequency (TEF)")
-    print(f"   Min: {tef_min:,} attempts/year")
-    print(f"   Mode: {tef_mode:,} attempts/year")
-    print(f"   Max: {tef_max:,} attempts/year\n")
-    
+
+    print(f"📧 Contact Frequency (CF) & Threat Event Frequency (TEF)")
+    print(f"   Contact Frequency:  {cf_min:,} / {cf_mode:,} / {cf_max:,} contacts/year (min/mode/max)")
+    print(f"   Probability of Action: {probability_of_action*100:.1f}%")
+    print(f"   → Derived TEF: {tef_min:,.1f} / {tef_mode:,.1f} / {tef_max:,.1f} attempts/year\n")
+
     # =================================================================
     # VULNERABILITY
     # =================================================================
-    # Question: What's the probability a threat succeeds?
-    # Break down into: Contact × Action × Vulnerability
-    
-    # Contact Frequency: % of threats that reach targets
-    # Example: Email filter blocks 90% → 10% get through
-    contact_frequency = 0.10  # 10% reach inbox
-    
-    # Probability of Action: % of reached threats acted upon
-    # Example: 8% of employees click phishing links
-    probability_of_action = 0.08  # 8% click
-    
-    # Vulnerability: % that succeed when acted upon
-    # Example: 25% of clicks lead to credential compromise
-    vulnerability_rate = 0.25  # 25% lead to compromise
-    
-    # Total Vulnerability = CF × PoA × V
-    total_vulnerability = contact_frequency * probability_of_action * vulnerability_rate
-    
-    print(f"🎯 Vulnerability Calculation")
-    print(f"   Contact Frequency: {contact_frequency*100:.1f}% (reach target)")
-    print(f"   Probability of Action: {probability_of_action*100:.1f}% (user acts)")
-    print(f"   Vulnerability: {vulnerability_rate*100:.1f}% (controls fail)")
-    print(f"   → TOTAL VULNERABILITY: {total_vulnerability*100:.2f}%")
-    print(f"   → Expected loss events: ~{tef_mode * total_vulnerability:.1f}/year\n")
+    # Question: Once a threat event occurs (already counted in TEF above),
+    # what's the probability it succeeds and becomes a loss event?
+    # Per O-RT Section 4.3.2: Vulnerability = P(Threat Capability > Resistance
+    # Strength). This is a SINGLE probability applied directly to TEF --
+    # it must NOT be re-multiplied by Contact Frequency or Probability of
+    # Action again, since those are already fully accounted for in TEF above.
+    # (An earlier version of this template made exactly that mistake --
+    # see the project's CHANGELOG.md for the writeup.)
+    #
+    # Example: of the ~800/year phishing attempts that get through and are
+    # acted upon (TEF), a small fraction still result in a real compromise
+    # despite EDR, backups, and other controls.
+    total_vulnerability = 0.00017  # 0.017% -- see CHANGELOG.md / PRESET_METHODOLOGY.md
+                                    # for how this order of magnitude was derived; validate
+                                    # against real client control effectiveness data.
+
+    print(f"🎯 Vulnerability")
+    print(f"   Vulnerability: {total_vulnerability*100:.4f}% (probability a threat event becomes a loss event)")
+    print(f"   → Expected loss events: ~{tef_mode * total_vulnerability:.2f}/year\n")
     
     # =================================================================
     # PRIMARY LOSS MAGNITUDE
@@ -235,7 +246,7 @@ def run_custom_scenario():
     
     print(f"2️⃣  REDUCE THE RISK")
     print(f"   Option A: Email Security Gateway + User Training")
-    print(f"   - Reduce vulnerability from {total_vulnerability*100:.2f}% to ~0.05%")
+    print(f"   - Reduce vulnerability by an estimated 75% (to ~{total_vulnerability*0.25*100:.4f}%)")
     print(f"   - Estimated annual cost: €15,000-25,000")
     print(f"   - Estimated ALE reduction: ~75% (€{stats['ale_mean']*0.75:,.0f})")
     print(f"   - Net benefit: €{(stats['ale_mean']*0.75 - 20000):,.0f}/year")
