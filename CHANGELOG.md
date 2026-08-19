@@ -1,9 +1,9 @@
 # FAIR Risk Analysis Dashboard - Changelog
 
-## [Unreleased] — Fix: Contact Frequency / Vulnerability double-counting bug
+## Fix: Contact Frequency / Vulnerability double-counting bug
 
 ### Summary
-Fixes a real methodology bug reported by [@paolocarner](https://github.com/paolocarner) on GitHub: Threat Event Frequency (TEF) was collected directly as its own distribution, but the "Vulnerability" section separately asked for a "Contact Frequency (%)" and re-multiplied it (along with Probability of Action) into the vulnerability calculation — double-counting contact/action that TEF already fully represented, and mislabeling Contact Frequency as a percentage when the O-RT Standard defines it as a count. This silently crushed Loss Event Frequency (and therefore ALE) to artificially low values across every preset scenario.
+Fixes a real methodology bug reported on GitHub: Threat Event Frequency (TEF) was collected directly as its own distribution, but the "Vulnerability" section separately asked for a "Contact Frequency (%)" and re-multiplied it (along with Probability of Action) into the vulnerability calculation — double-counting contact/action that TEF already fully represented, and mislabeling Contact Frequency as a percentage when the O-RT Standard defines it as a count. This silently crushed Loss Event Frequency (and therefore ALE) to artificially low values across every preset scenario.
 
 This release implements the **proper fix**: Contact Frequency is now a real count of contacts/year, Threat Event Frequency is *actually computed* as `TEF = Contact Frequency × Probability of Action` (per Open Group O-RT Standard v3.0.1 §4.3.1), and Vulnerability is a single, directly-set probability applied to that derived TEF (per §4.3.2) — never re-multiplied by Contact Frequency or Probability of Action.
 
