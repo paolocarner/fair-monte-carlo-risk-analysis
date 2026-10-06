@@ -1,0 +1,21 @@
+{
+  "name": "FAIR Risk Analysis Dashboard",
+  "image": "mcr.microsoft.com/devcontainers/python:3.14-trixie",
+  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -r requirements.txt",
+  "postStartCommand": "streamlit run fair_dashboard.py --server.headless true",
+  "forwardPorts": [8501],
+  "portsAttributes": {
+    "8501": {
+      "label": "FAIR Risk Analysis Dashboard",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}
