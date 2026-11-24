@@ -269,6 +269,8 @@ stats = sim.run_simulation(
 3. **Multiplicative** - Costs compound (downtime × hourly rate × days)
 4. **Empirically validated** - IBM, Ponemon data shows this pattern
 
+**How the three inputs are used:** the tool treats the middle value as the **median** (not the mode) and the min / max as **soft bounds** (about the 2nd and 98th percentile, roughly). So enter a typical cost, a plausible low end and a plausible high end. See the CHANGELOG entry on lognormal parameter labels.
+
 **Visual:**
 ```
 Frequency

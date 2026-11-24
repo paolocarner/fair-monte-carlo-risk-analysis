@@ -99,11 +99,11 @@ def validate_inputs(cf_min, cf_mode, cf_max,
         errors.append(f"Contact Frequency: min ({cf_min:,}) must be ≤ mode ({cf_mode:,}) ≤ max ({cf_max:,})")
     if not (primary_min <= primary_mode <= primary_max):
         errors.append(
-            f"Primary Loss: min ({primary_min:,}) must be ≤ mode ({primary_mode:,}) ≤ max ({primary_max:,})"
+            f"Primary Loss: low-end ({primary_min:,}) must be ≤ median ({primary_mode:,}) ≤ high-end ({primary_max:,})"
         )
     if not (secondary_min <= secondary_mode <= secondary_max):
         errors.append(
-            f"Secondary Loss: min ({secondary_min:,}) must be ≤ mode ({secondary_mode:,}) ≤ max ({secondary_max:,})"
+            f"Secondary Loss: low-end ({secondary_min:,}) must be ≤ median ({secondary_mode:,}) ≤ high-end ({secondary_max:,})"
         )
     return errors
 
@@ -250,8 +250,8 @@ def generate_html_report(
   <div class="param"><strong>Probability of Action</strong>{poa*100:.1f}%</div>
   <div class="param"><strong>TEF — derived (min / mode / max)</strong>{tef_min:,.1f} / {tef_mode:,.1f} / {tef_max:,.1f}</div>
   <div class="param"><strong>Vulnerability</strong>{total_vulnerability*100:.4f}%</div>
-  <div class="param"><strong>Primary loss range</strong>{currency}{primary_min:,} – {currency}{primary_max:,} (mode {currency}{primary_mode:,})</div>
-  <div class="param"><strong>Secondary loss range</strong>{currency}{secondary_min:,} – {currency}{secondary_max:,} (mode {currency}{secondary_mode:,})</div>
+  <div class="param"><strong>Primary loss range</strong>{currency}{primary_min:,} – {currency}{primary_max:,} (median {currency}{primary_mode:,})</div>
+  <div class="param"><strong>Secondary loss range</strong>{currency}{secondary_min:,} – {currency}{secondary_max:,} (median {currency}{secondary_mode:,})</div>
   <div class="param"><strong>Secondary loss probability</strong>{secondary_prob*100:.1f}%</div>
   <div class="param"><strong>Std deviation (ALE)</strong>{currency}{stats['ale_std']:,.2f}</div>
 </div>
@@ -326,8 +326,8 @@ def compute_sensitivity(
         "Contact Frequency Mode",
         "Probability of Action",
         "Vulnerability",
-        "Primary Loss Mode",
-        "Secondary Loss Mode",
+        "Primary Loss Median",
+        "Secondary Loss Median",
         "Secondary Probability",
     ]
 
@@ -758,25 +758,25 @@ with col2:
         st.markdown("**💰 Primary Loss Magnitude**")
         st.caption("Direct costs when an incident occurs")
         primary_min = st.number_input(
-            "Minimum primary loss",
+            "Low-end primary loss",
             min_value=100, max_value=10_000_000,
             value=preset_values["primary_min"], step=1000,
             key="cfg_primary_min",
-            help="Minimum direct loss (ransom, response costs, hardware replacement)."
+            help="Low-end direct loss (ransom, response costs, hardware replacement). A soft limit: roughly 2% of simulated incidents fall below it."
         )
         primary_mode = st.number_input(
-            "Most likely primary loss",
+            "Typical (median) primary loss",
             min_value=100, max_value=10_000_000,
             value=preset_values["primary_mode"], step=1000,
             key="cfg_primary_mode",
-            help="Most likely (mode) direct cost per incident."
+            help="Typical direct cost per incident. Treated as the median: half of simulated incidents cost less, half more."
         )
         primary_max = st.number_input(
-            "Maximum primary loss",
+            "High-end primary loss",
             min_value=100, max_value=10_000_000,
             value=preset_values["primary_max"], step=1000,
             key="cfg_primary_max",
-            help="Maximum probable direct cost in a worst-case incident."
+            help="High-end direct cost in a bad incident. A soft limit: roughly 3% of simulated incidents exceed it."
         )
 
         with st.expander("📊 Preview primary loss distribution"):
@@ -788,25 +788,25 @@ with col2:
         st.markdown("**📉 Secondary Loss Magnitude**")
         st.caption("Indirect costs (fines, reputation, legal, etc.)")
         secondary_min = st.number_input(
-            "Minimum secondary loss",
+            "Low-end secondary loss",
             min_value=0, max_value=10_000_000,
             value=preset_values["secondary_min"], step=1000,
             key="cfg_secondary_min",
-            help="Minimum indirect losses (fines, lawsuits, reputational damage)."
+            help="Low-end indirect losses (fines, lawsuits, reputational damage). A soft limit: roughly 2% of simulated incidents fall below it."
         )
         secondary_mode = st.number_input(
-            "Most likely secondary loss",
+            "Typical (median) secondary loss",
             min_value=0, max_value=10_000_000,
             value=preset_values["secondary_mode"], step=1000,
             key="cfg_secondary_mode",
-            help="Most likely (mode) indirect cost following an incident."
+            help="Typical indirect cost following an incident. Treated as the median: half of simulated incidents cost less, half more."
         )
         secondary_max = st.number_input(
-            "Maximum secondary loss",
+            "High-end secondary loss",
             min_value=0, max_value=10_000_000,
             value=preset_values["secondary_max"], step=1000,
             key="cfg_secondary_max",
-            help="Maximum probable indirect cost including worst-case regulatory penalties."
+            help="High-end indirect cost including bad-case regulatory penalties. A soft limit: roughly 3% of simulated incidents exceed it."
         )
         secondary_prob = st.slider(
             "Probability of Secondary Losses (%)",

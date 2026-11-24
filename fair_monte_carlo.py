@@ -71,6 +71,19 @@ def derive_tef_from_contact(cf_min: float, cf_mode: float, cf_max: float,
 @dataclass
 class FAIRDistribution:
     """Represents a probability distribution for FAIR parameters"""
+    """
+    Note on parameter meaning (the field names are kept for backward
+    compatibility):
+
+    - pert / triangular: min_val, mode_val, max_val are a hard minimum, the
+      most likely value, and a hard maximum.
+    - lognormal built from (min_val, mode_val, max_val): mode_val is the
+      MEDIAN (not the mode), and min_val / max_val are SOFT bounds that
+      approximate the plausible low and high end. The sampler uses
+      mu = ln(mode_val) and sigma = (ln(max_val) - ln(min_val)) / 4, so the
+      true mode is lower than mode_val, the mean is higher, and a few
+      percent of samples fall outside [min_val, max_val].
+    """
     dist_type: str  # 'pert', 'lognormal', 'uniform', 'triangular'
     min_val: float
     mode_val: float = None
@@ -134,6 +147,8 @@ class FAIRDistribution:
                         f"Lognormal distribution requires min_val < max_val, "
                         f"got min={self.min_val}, max={self.max_val}"
                     )
+                # mode_val is treated as the median (mu = ln(median)); min/max
+                # are soft bounds (about +/-2 sigma in log space).
                 mu = np.log(mode_val_safe)
                 sigma = (np.log(max_val_safe) - np.log(min_val_safe)) / LOGNORMAL_SIGMA_DIVISOR
                 return np.random.lognormal(mu, sigma, size)
