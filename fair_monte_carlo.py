@@ -99,8 +99,13 @@ class FAIRDistribution:
                     "or (min_val, mode_val, max_val)"
                 )
 
-    def sample(self, size: int) -> np.ndarray:
-        """Generate random samples from the distribution"""
+    def sample(self, size: int, rng: Optional[np.random.Generator] = None) -> np.ndarray:
+        """Generate random samples from the distribution.
+
+        rng: optional numpy Generator (e.g. np.random.default_rng(seed)). If
+        omitted, the legacy global numpy RNG is used, as in earlier versions.
+        """
+        gen = rng if rng is not None else np.random
         if self.dist_type == 'pert':
             if not (self.min_val <= self.mode_val <= self.max_val):
                 raise ValueError(
@@ -112,7 +117,7 @@ class FAIRDistribution:
                 return np.full(size, self.min_val)
             alpha = 1 + lambda_param * (self.mode_val - self.min_val) / (self.max_val - self.min_val)
             beta = 1 + lambda_param * (self.max_val - self.mode_val) / (self.max_val - self.min_val)
-            beta_samples = np.random.beta(alpha, beta, size)
+            beta_samples = gen.beta(alpha, beta, size)
             return self.min_val + beta_samples * (self.max_val - self.min_val)
 
         elif self.dist_type == 'lognormal':
@@ -124,7 +129,7 @@ class FAIRDistribution:
                 variance = self.std ** 2
                 mu = np.log(self.mean ** 2 / np.sqrt(variance + self.mean ** 2))
                 sigma = np.sqrt(np.log(1 + variance / (self.mean ** 2)))
-                return np.random.lognormal(mu, sigma, size)
+                return gen.lognormal(mu, sigma, size)
             else:
                 min_val_safe = max(self.min_val, MIN_POSITIVE_VALUE)
                 mode_val_safe = max(self.mode_val, MIN_POSITIVE_VALUE)
@@ -136,7 +141,7 @@ class FAIRDistribution:
                     )
                 mu = np.log(mode_val_safe)
                 sigma = (np.log(max_val_safe) - np.log(min_val_safe)) / LOGNORMAL_SIGMA_DIVISOR
-                return np.random.lognormal(mu, sigma, size)
+                return gen.lognormal(mu, sigma, size)
 
         elif self.dist_type == 'uniform':
             if self.min_val >= self.max_val:
@@ -144,7 +149,7 @@ class FAIRDistribution:
                     f"Uniform distribution requires min_val < max_val, "
                     f"got min={self.min_val}, max={self.max_val}"
                 )
-            return np.random.uniform(self.min_val, self.max_val, size)
+            return gen.uniform(self.min_val, self.max_val, size)
 
         elif self.dist_type == 'triangular':
             if not (self.min_val <= self.mode_val <= self.max_val):
@@ -152,7 +157,7 @@ class FAIRDistribution:
                     f"Triangular distribution requires min_val <= mode_val <= max_val, "
                     f"got min={self.min_val}, mode={self.mode_val}, max={self.max_val}"
                 )
-            return np.random.triangular(self.min_val, self.mode_val, self.max_val, size)
+            return gen.triangular(self.min_val, self.mode_val, self.max_val, size)
 
 
 class FAIRMonteCarloSimulation:
@@ -184,15 +189,16 @@ class FAIRMonteCarloSimulation:
         --------
         Dictionary with simulation results and statistics
         """
-        if self.random_seed is not None:
-            np.random.seed(self.random_seed)
+        # Per-run Generator: does not touch the global numpy RNG, so concurrent
+        # sessions (e.g. Streamlit) cannot disturb each other's reproducibility.
+        rng = np.random.default_rng(self.random_seed)
 
         # Sample Threat Event Frequency and compute Loss Event Frequency
-        tef_samples = tef_dist.sample(self.n_simulations)
+        tef_samples = tef_dist.sample(self.n_simulations, rng)
         lef_samples = tef_samples * vuln_prob
 
         # Number of actual loss events per simulation (Poisson-distributed)
-        actual_events = np.random.poisson(lef_samples)
+        actual_events = rng.poisson(lef_samples)
 
         # --- Vectorized loss calculation ---
         # Instead of looping over simulations, sample all events at once
@@ -201,11 +207,11 @@ class FAIRMonteCarloSimulation:
         annual_losses = np.zeros(self.n_simulations)
 
         if total_events > 0:
-            all_primary = primary_loss_dist.sample(total_events)
+            all_primary = primary_loss_dist.sample(total_events, rng)
 
             if secondary_loss_dist is not None and secondary_loss_prob > 0:
-                all_secondary = secondary_loss_dist.sample(total_events)
-                has_secondary = np.random.random(total_events) < secondary_loss_prob
+                all_secondary = secondary_loss_dist.sample(total_events, rng)
+                has_secondary = rng.random(total_events) < secondary_loss_prob
                 all_loss = all_primary + np.where(has_secondary, all_secondary, 0.0)
             else:
                 all_loss = all_primary

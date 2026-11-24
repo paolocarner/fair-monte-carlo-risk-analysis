@@ -14,6 +14,7 @@ from fair_monte_carlo import (
     PERT_LAMBDA_PARAMETER,
     FAIRDistribution,
     FAIRMonteCarloSimulation,
+    derive_tef_from_contact,
 )
 
 # ---------------------------------------------------------------------------
@@ -410,3 +411,106 @@ class TestConstants:
 
     def test_lognormal_sigma_divisor_positive(self):
         assert LOGNORMAL_SIGMA_DIVISOR > 0
+
+
+
+# ---------------------------------------------------------------------------
+# RNG isolation
+# ---------------------------------------------------------------------------
+
+class TestRNGIsolation:
+
+    def test_seeded_run_does_not_touch_global_numpy_rng(self):
+        np.random.seed(999)
+        before = np.random.get_state()[1].copy()
+        sim = FAIRMonteCarloSimulation(n_simulations=2_000, random_seed=SEED)
+        sim.run_simulation(make_tef(), 0.1, make_primary())
+        after = np.random.get_state()[1]
+        assert np.array_equal(before, after)
+
+    def test_seeded_result_independent_of_global_seed(self):
+        np.random.seed(1)
+        a = FAIRMonteCarloSimulation(2_000, random_seed=SEED).run_simulation(
+            make_tef(), 0.1, make_primary())["ale_mean"]
+        np.random.seed(2)
+        b = FAIRMonteCarloSimulation(2_000, random_seed=SEED).run_simulation(
+            make_tef(), 0.1, make_primary())["ale_mean"]
+        assert a == b
+
+    def test_unseeded_runs_differ(self):
+        a = FAIRMonteCarloSimulation(2_000).run_simulation(
+            make_tef(), 0.1, make_primary())["ale_mean"]
+        b = FAIRMonteCarloSimulation(2_000).run_simulation(
+            make_tef(), 0.1, make_primary())["ale_mean"]
+        assert a != b
+
+    def test_sample_accepts_explicit_generator(self):
+        d = make_primary()
+        x = d.sample(10, np.random.default_rng(5))
+        y = d.sample(10, np.random.default_rng(5))
+        assert np.array_equal(x, y)
+
+
+# ---------------------------------------------------------------------------
+# Statistical correctness: simulated mean ALE vs analytic expectation
+# ---------------------------------------------------------------------------
+
+def _lognormal_mean(min_val, mode_val, max_val):
+    mu = np.log(mode_val)
+    sigma = (np.log(max_val) - np.log(min_val)) / LOGNORMAL_SIGMA_DIVISOR
+    return float(np.exp(mu + sigma ** 2 / 2))
+
+
+class TestAnalyticExpectation:
+
+    def test_mean_ale_matches_analytic(self):
+        # E[ALE] = E[TEF] * vuln * (E[primary] + p_sec * E[secondary])
+        tef = FAIRDistribution("pert", 100, 300, 1000)
+        primary = FAIRDistribution("lognormal", min_val=10_000, mode_val=50_000, max_val=200_000)
+        secondary = FAIRDistribution("lognormal", min_val=5_000, mode_val=25_000, max_val=150_000)
+        vuln, p_sec = 0.02, 0.4
+        e_tef = (100 + 4 * 300 + 1000) / 6  # PERT mean for lambda = 4
+        expected = e_tef * vuln * (
+            _lognormal_mean(10_000, 50_000, 200_000)
+            + p_sec * _lognormal_mean(5_000, 25_000, 150_000)
+        )
+        sim = FAIRMonteCarloSimulation(n_simulations=400_000, random_seed=SEED)
+        stats = sim.run_simulation(tef, vuln, primary, secondary, p_sec)
+        assert stats["ale_mean"] == pytest.approx(expected, rel=0.03)
+
+    def test_mean_lef_matches_tef_times_vuln(self):
+        tef = FAIRDistribution("pert", 100, 300, 1000)
+        sim = FAIRMonteCarloSimulation(n_simulations=200_000, random_seed=SEED)
+        stats = sim.run_simulation(tef, 0.05, make_primary())
+        assert stats["lef_mean"] == pytest.approx(((100 + 1200 + 1000) / 6) * 0.05, rel=0.01)
+
+
+# ---------------------------------------------------------------------------
+# derive_tef_from_contact (TEF = Contact Frequency x Probability of Action)
+# ---------------------------------------------------------------------------
+
+class TestDeriveTEFFromContact:
+
+    def test_scales_all_three_parameters(self):
+        assert derive_tef_from_contact(1000, 3000, 8000, 0.1) == (100.0, 300.0, 800.0)
+
+    def test_poa_zero_and_one(self):
+        assert derive_tef_from_contact(10, 20, 30, 0.0) == (0.0, 0.0, 0.0)
+        assert derive_tef_from_contact(10, 20, 30, 1.0) == (10, 20, 30)
+
+    @pytest.mark.parametrize("poa", [-0.01, 1.01])
+    def test_poa_out_of_range_raises(self, poa):
+        with pytest.raises(ValueError, match="poa"):
+            derive_tef_from_contact(10, 20, 30, poa)
+
+    def test_unordered_contact_frequency_raises(self):
+        with pytest.raises(ValueError, match="cf_min"):
+            derive_tef_from_contact(30, 20, 10, 0.5)
+
+    def test_scaling_property_matches_empirical_sampling(self):
+        cf = FAIRDistribution("pert", 1000, 3000, 8000)
+        tef_min, tef_mode, tef_max = derive_tef_from_contact(1000, 3000, 8000, 0.1)
+        tef = FAIRDistribution("pert", tef_min, tef_mode, tef_max)
+        scaled = cf.sample(50_000, np.random.default_rng(11)) * 0.1
+        derived = tef.sample(50_000, np.random.default_rng(11))
+        assert np.allclose(scaled, derived)

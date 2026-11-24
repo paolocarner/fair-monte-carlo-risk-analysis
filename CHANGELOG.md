@@ -1,5 +1,16 @@
 # FAIR Risk Analysis Dashboard - Changelog
 
+## Fix: Isolated RNG and engine test coverage
+
+### Changed
+- `FAIRMonteCarloSimulation.run_simulation()` now uses a per-run `np.random.default_rng(random_seed)` instead of seeding the global `np.random` state. Seeded runs no longer disturb (or depend on) other code sharing the process, such as concurrent Streamlit sessions.
+- `FAIRDistribution.sample()` takes an optional `rng` argument. Without it, behaviour is unchanged (global numpy RNG).
+- **Seeded results differ from earlier versions.** The same seed now produces a different (equally valid) random stream, so a saved seed will not reproduce an old report's exact numbers. Statistics are the same in distribution.
+
+### Added (tests)
+- RNG isolation tests, an analytic check that simulated mean ALE and mean LEF match their expected values, and `derive_tef_from_contact` tests (edge cases, range errors, PERT scaling property).
+- Note: the "Contact Frequency / Vulnerability" entry below lists `tests/test_fair_dashboard.py` (12 tests) and a `TestDeriveTEFFromContact` class. Neither was present in the repository on `main` when this change was made. The derive_tef tests are added here; the Streamlit `AppTest` dashboard suite is still missing.
+
 ## Fix: Contact Frequency / Vulnerability double-counting bug
 
 ### Summary
