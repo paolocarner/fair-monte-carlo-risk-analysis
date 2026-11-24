@@ -1,0 +1,16 @@
+# Python bytecode and environments
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Test and tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Streamlit local secrets
+.streamlit/secrets.toml
