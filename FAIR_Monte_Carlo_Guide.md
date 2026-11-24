@@ -115,6 +115,8 @@ FAIRDistribution(
 ```
 - Realistic for costs (right-skewed)
 - Most losses are small, few are large
+- `mode_val` is the **median** (half of simulated losses fall below it), not the most likely value. The true mode sits lower and the mean sits higher
+- `min_val` / `max_val` are **soft bounds** for the plausible low and high end: expect roughly 2-3% of samples to fall outside each. Enter them as "low-end" and "high-end" estimates, not as absolute limits
 - Industry standard for financial modeling
 
 ### 3. Uniform Distribution

@@ -354,7 +354,7 @@ Before committing changes, ask:
 
 3. **Are loss magnitudes realistic?**
    - Primary loss > annual revenue? Unrealistic for SMB
-   - Mode between min and max? Should be closer to min (lognormal)
+   - Median between low-end and high-end? Should be closer to the low-end (lognormal). Note the lognormal 'mode' input is the median, and min/max are soft bounds
 
 4. **Do sources support the values?**
    - Can you point to the page number in the report?

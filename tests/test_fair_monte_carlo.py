@@ -114,6 +114,30 @@ class TestFAIRDistributionSampling:
         assert samples.shape == (self.SIZE,)
         assert np.all(samples > 0)
 
+    def test_lognormal_middle_input_is_median_not_mode(self):
+        """mode_val is the MEDIAN of the sampled distribution (documented behaviour)."""
+        np.random.seed(123)
+        dist = FAIRDistribution(dist_type="lognormal", min_val=10_000,
+                                mode_val=50_000, max_val=200_000)
+        samples = dist.sample(400_000)
+        assert np.median(samples) == pytest.approx(50_000, rel=0.02)
+        # True mode of a lognormal is exp(mu - sigma^2), below the median
+        sigma = (np.log(200_000) - np.log(10_000)) / LOGNORMAL_SIGMA_DIVISOR
+        true_mode = np.exp(np.log(50_000) - sigma ** 2)
+        assert true_mode < 50_000 * 0.7
+        assert samples.mean() > 50_000
+
+    def test_lognormal_min_max_are_soft_bounds(self):
+        """A few percent of samples fall outside min/max; they are not hard limits."""
+        np.random.seed(124)
+        dist = FAIRDistribution(dist_type="lognormal", min_val=10_000,
+                                mode_val=50_000, max_val=200_000)
+        samples = dist.sample(400_000)
+        below = np.mean(samples < 10_000)
+        above = np.mean(samples > 200_000)
+        assert 0.005 < below < 0.05
+        assert 0.005 < above < 0.06
+
     def test_lognormal_mean_std_all_positive(self):
         dist = FAIRDistribution(dist_type="lognormal", min_val=0, mean=10_000.0, std=3_000.0)
         samples = dist.sample(self.SIZE)

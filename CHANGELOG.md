@@ -1,5 +1,20 @@
 # FAIR Risk Analysis Dashboard - Changelog
 
+## Fix: Lognormal loss inputs relabelled (median, soft bounds)
+
+### Summary
+For lognormal loss distributions built from (min, mode, max), the sampler sets `mu = ln(mode)` and `sigma = (ln(max) - ln(min)) / 4`. That makes the middle input the **median** of the distribution, not its mode, and makes min / max **soft** bounds (roughly 2% of samples fall below min and 3% above max for typical inputs). The UI and docs called them "Minimum / Most likely / Maximum", which overstated what the engine does. Example: inputs 10,000 / 50,000 / 200,000 give a median of about 50,000, a mean of about 66,000 and a true mode of about 28,500.
+
+### Changed
+- **No numerical change.** Simulation output is identical to the previous version for the same inputs and seed.
+- `fair_dashboard.py`: loss inputs relabelled "Low-end / Typical (median) / High-end", help text explains soft bounds, validation messages and the PDF/report text say "median".
+- `fair_monte_carlo.py`: `FAIRDistribution` docstring documents the meaning of the fields. Field names (`min_val`, `mode_val`, `max_val`) are unchanged, so saved configs and scripts keep working.
+- Docs: `FAIR_Monte_Carlo_Guide.md`, `STATISTICS_FAQ.md`, `UPDATING_STATISTICS_GUIDE.md`.
+- New tests pin the behaviour (median equals `mode_val`, soft-bound fractions).
+
+### Note for existing assessments
+If an earlier assessment treated the middle input as "most likely", the input was effectively a median, so the stated and simulated ranges differ somewhat from what the report text said. Review before reusing old reports.
+
 ## Fix: Contact Frequency / Vulnerability double-counting bug
 
 ### Summary
